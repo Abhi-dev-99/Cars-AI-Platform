@@ -106,7 +106,7 @@ export default function KnowledgeBase() {
   if (!authed) {
     return (
       <form className="kb-unlock" onSubmit={onUnlock}>
-        <h3>🔒 Knowledge Base — Admin Login</h3>
+        <h3>🔒 Configure — Admin Login</h3>
         <p className="muted small">Enter the admin password (set as <code>ADMIN_PASSWORD</code> on the backend).</p>
         <input
           type="password"

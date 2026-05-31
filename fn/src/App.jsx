@@ -13,7 +13,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cars/:id" element={<CarDetail />} />
-          <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+          <Route path="/configure" element={<KnowledgeBasePage />} />
           <Route path="/ai" element={<AIAssistant />} />
         </Routes>
       </main>
