@@ -14,8 +14,9 @@ Cars-AI-Platform/
 - Browse 12+ popular Indian cars (Maruti, Tata, Mahindra, Hyundai, Kia, Toyota…)
 - Filter by brand, fuel type, body type
 - Detailed car pages with specs, features, and **Buy Now** flow
-- 🤖 **AI Assistant** — natural-language chat + structured recommendations
+- 🤖 **AI Assistant** — Llama 3.3 70B (open source, via Groq) grounded on your catalog
 - Works **with or without** Supabase (falls back to in-memory data)
+- Works **with or without** Groq (falls back to rule-based chat)
 
 ---
 
@@ -39,6 +40,21 @@ npm run dev                # http://localhost:5173 (proxies /api → :4000)
 ```
 
 Open `http://localhost:5173` — that's it.
+
+---
+
+## AI Setup (Groq + Llama — free)
+
+1. Sign up at https://console.groq.com (no credit card)
+2. Create an API key at https://console.groq.com/keys
+3. Add to `bn/.env`:
+   ```
+   GROQ_API_KEY=gsk_...
+   GROQ_MODEL=llama-3.3-70b-versatile
+   ```
+4. Restart the backend. The chat will now use Llama 3.3 70B, grounded on your car catalog.
+
+Swap to other open models by changing `GROQ_MODEL`: `llama-3.1-8b-instant`, `mixtral-8x7b-32768`, `gemma2-9b-it`, etc.
 
 ---
 

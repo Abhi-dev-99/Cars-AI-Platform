@@ -20,8 +20,12 @@ export const api = {
   getCar: (id) => request(`/api/cars/${id}`),
   getFilters: () => request('/api/cars/filters'),
   buyCar: (id, payload) => request(`/api/cars/${id}/buy`, { method: 'POST', body: JSON.stringify(payload) }),
-  chat: (message) => request('/api/ai/chat', { method: 'POST', body: JSON.stringify({ message }) }),
+  chat: (message, history = []) => request('/api/ai/chat', { method: 'POST', body: JSON.stringify({ message, history }) }),
   recommend: (prefs) => request('/api/ai/recommend', { method: 'POST', body: JSON.stringify(prefs) }),
+  vision: ({ image_base64, image_url, prompt }) => request('/api/ai/vision', {
+    method: 'POST',
+    body: JSON.stringify({ image_base64, image_url, prompt }),
+  }),
 };
 
 export const formatINR = (amount) => {

@@ -1,13 +1,22 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import CarCard from '../components/CarCard.jsx';
 
 export default function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cars, setCars] = useState([]);
   const [filters, setFilters] = useState({ brands: [], fuel_types: [], body_types: [] });
-  const [query, setQuery] = useState({ search: '', brand: '', fuel_type: '', body_type: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const query = {
+    search: searchParams.get('search') || '',
+    brand: searchParams.get('brand') || '',
+    fuel_type: searchParams.get('fuel_type') || '',
+    body_type: searchParams.get('body_type') || '',
+    max_price: searchParams.get('max_price') || '',
+  };
 
   useEffect(() => {
     api.getFilters().then(setFilters).catch(() => {});
@@ -20,9 +29,17 @@ export default function Home() {
       .then(({ cars }) => setCars(cars))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
 
-  const updateQuery = (key, value) => setQuery((q) => ({ ...q, [key]: value }));
+  const updateQuery = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
+
+  const hasActiveFilters = Object.values(query).some(Boolean);
 
   return (
     <div>
@@ -52,6 +69,12 @@ export default function Home() {
           {filters.body_types.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
       </section>
+
+      {hasActiveFilters && (
+        <button className="clear-filters" onClick={() => setSearchParams({})}>
+          Clear filters
+        </button>
+      )}
 
       {error && <div className="error">⚠️ {error}</div>}
       {loading ? (
