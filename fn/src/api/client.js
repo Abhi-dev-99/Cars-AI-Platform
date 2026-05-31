@@ -26,6 +26,23 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ image_base64, image_url, prompt }),
   }),
+  admin: {
+    list: (password) => request('/api/cars/admin/all', { headers: { 'x-admin-password': password } }),
+    create: (password, car) => request('/api/cars', {
+      method: 'POST',
+      headers: { 'x-admin-password': password },
+      body: JSON.stringify(car),
+    }),
+    update: (password, id, car) => request(`/api/cars/${id}`, {
+      method: 'PUT',
+      headers: { 'x-admin-password': password },
+      body: JSON.stringify(car),
+    }),
+    remove: (password, id) => request(`/api/cars/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-password': password },
+    }),
+  },
 };
 
 export const formatINR = (amount) => {
