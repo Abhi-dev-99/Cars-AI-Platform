@@ -6,7 +6,7 @@ export default function Navbar() {
       <div className="container nav-inner">
         <Link to="/" className="brand">
           <span className="brand-icon">🚗</span>
-          <span>Cars AI</span>
+          <span>CarZ</span>
         </Link>
         <nav className="nav-links">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
