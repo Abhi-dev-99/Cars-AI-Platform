@@ -5,7 +5,7 @@ export default function Navbar() {
     <header className="navbar">
       <div className="container nav-inner">
         <Link to="/" className="brand">
-          <img src="/logo.png" alt="CarZ" className="brand-logo" />
+          <img src="/logo.svg" alt="CarZ" className="brand-logo" />
           <span>CarZ</span>
         </Link>
         <nav className="nav-links">
