@@ -12,6 +12,9 @@ export default function Navbar() {
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
             Browse
           </NavLink>
+          <NavLink to="/knowledge-base" className={({ isActive }) => (isActive ? 'active' : '')}>
+            Knowledge Base
+          </NavLink>
           <NavLink to="/ai" className={({ isActive }) => (isActive ? 'active' : '')}>
             AI Assistant
           </NavLink>

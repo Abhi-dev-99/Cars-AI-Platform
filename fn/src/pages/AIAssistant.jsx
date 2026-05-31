@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { api } from '../api/client.js';
 import CarCard from '../components/CarCard.jsx';
 import ChatActions from '../components/ChatActions.jsx';
-import KnowledgeBase from '../components/KnowledgeBase.jsx';
 
 const QUICK_PROMPTS = [
   'Compare Tata Nexon EV and Hyundai Ioniq 5',
@@ -21,11 +20,9 @@ export default function AIAssistant() {
       <div className="tabs">
         <button className={tab === 'chat' ? 'tab active' : 'tab'} onClick={() => setTab('chat')}>Chat</button>
         <button className={tab === 'recommend' ? 'tab active' : 'tab'} onClick={() => setTab('recommend')}>Recommend</button>
-        <button className={tab === 'kb' ? 'tab active' : 'tab'} onClick={() => setTab('kb')}>📚 Knowledge Base</button>
       </div>
       {tab === 'chat' && <ChatTab />}
       {tab === 'recommend' && <RecommendTab />}
-      {tab === 'kb' && <KnowledgeBase />}
     </div>
   );
 }

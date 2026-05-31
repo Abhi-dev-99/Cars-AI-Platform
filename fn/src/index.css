@@ -498,6 +498,10 @@ button {
 }
 .chip strong { color: var(--text); }
 
+/* Knowledge Base page */
+.kb-page h1 { font-size: 32px; margin: 24px 0 8px; }
+.kb-page > p { color: var(--muted); margin-bottom: 24px; }
+
 /* Knowledge Base */
 .kb-unlock {
   max-width: 380px;

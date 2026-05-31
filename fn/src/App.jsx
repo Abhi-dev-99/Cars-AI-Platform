@@ -3,6 +3,7 @@ import Navbar from './components/Navbar.jsx';
 import Home from './pages/Home.jsx';
 import CarDetail from './pages/CarDetail.jsx';
 import AIAssistant from './pages/AIAssistant.jsx';
+import KnowledgeBasePage from './pages/KnowledgeBasePage.jsx';
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cars/:id" element={<CarDetail />} />
+          <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
           <Route path="/ai" element={<AIAssistant />} />
         </Routes>
       </main>
