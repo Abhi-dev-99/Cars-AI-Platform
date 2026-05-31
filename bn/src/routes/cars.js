@@ -131,6 +131,59 @@ router.post('/:id/buy', async (req, res, next) => {
 
 // === Admin (Knowledge Base) CRUD ===
 
+function computeDiff(before, after) {
+  const diff = {};
+  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
+  for (const k of keys) {
+    if (k === 'created_at') continue;
+    const a = before?.[k];
+    const b = after?.[k];
+    if (JSON.stringify(a) !== JSON.stringify(b)) {
+      diff[k] = { before: a ?? null, after: b ?? null };
+    }
+  }
+  return diff;
+}
+
+async function logChange({ car_id, action, diff = {}, snapshot = null }) {
+  if (!hasSupabase) return;
+  try {
+    await supabase.from('car_audit_log').insert({ car_id, action, diff, snapshot });
+  } catch (e) {
+    console.error('[audit] failed to log change:', e.message);
+  }
+}
+
+router.get('/admin/recent', requireAdmin, async (_req, res, next) => {
+  try {
+    if (!hasSupabase) return res.json({ entries: [] });
+    const { data, error } = await supabase
+      .from('car_audit_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) throw error;
+    res.json({ entries: data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/:id/history', requireAdmin, async (req, res, next) => {
+  try {
+    if (!hasSupabase) return res.json({ entries: [] });
+    const { data, error } = await supabase
+      .from('car_audit_log')
+      .select('*')
+      .eq('car_id', req.params.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ entries: data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/admin/all', requireAdmin, async (_req, res, next) => {
   try {
     if (hasSupabase) {
@@ -156,6 +209,7 @@ router.post('/', requireAdmin, async (req, res, next) => {
     if (hasSupabase) {
       const { data, error } = await supabase.from('cars').insert(payload).select().single();
       if (error) throw error;
+      await logChange({ car_id: data.id, action: 'create', snapshot: data });
       return res.status(201).json({ car: data });
     }
     INDIAN_CARS.push(payload);
@@ -174,20 +228,27 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
     }
 
     if (hasSupabase) {
-      const { data, error } = await supabase
+      const { data: before } = await supabase.from('cars').select('*').eq('id', req.params.id).single();
+      const { data: after, error } = await supabase
         .from('cars')
         .update(updates)
         .eq('id', req.params.id)
         .select()
         .single();
       if (error) throw error;
-      if (!data) return res.status(404).json({ error: 'Car not found' });
-      return res.json({ car: data });
+      if (!after) return res.status(404).json({ error: 'Car not found' });
+      const diff = computeDiff(before, after);
+      if (Object.keys(diff).length > 0) {
+        await logChange({ car_id: after.id, action: 'update', diff });
+      }
+      return res.json({ car: after, diff });
     }
     const idx = INDIAN_CARS.findIndex((c) => c.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Car not found' });
-    INDIAN_CARS[idx] = { ...INDIAN_CARS[idx], ...updates };
-    res.json({ car: INDIAN_CARS[idx] });
+    const before = { ...INDIAN_CARS[idx] };
+    INDIAN_CARS[idx] = { ...before, ...updates };
+    const diff = computeDiff(before, INDIAN_CARS[idx]);
+    res.json({ car: INDIAN_CARS[idx], diff });
   } catch (err) {
     next(err);
   }
@@ -196,8 +257,10 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
 router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     if (hasSupabase) {
+      const { data: before } = await supabase.from('cars').select('*').eq('id', req.params.id).single();
       const { error } = await supabase.from('cars').delete().eq('id', req.params.id);
       if (error) throw error;
+      if (before) await logChange({ car_id: req.params.id, action: 'delete', snapshot: before });
       return res.json({ ok: true });
     }
     const idx = INDIAN_CARS.findIndex((c) => c.id === req.params.id);

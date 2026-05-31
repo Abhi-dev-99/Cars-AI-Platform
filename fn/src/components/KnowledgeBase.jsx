@@ -24,6 +24,8 @@ export default function KnowledgeBase() {
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [historyCar, setHistoryCar] = useState(null);
 
   const loadCars = async (pw = password) => {
     setLoading(true);
@@ -55,36 +57,49 @@ export default function KnowledgeBase() {
     setCars([]);
   };
 
+  const showToast = (type, title, body) => {
+    setToast({ type, title, body });
+    setTimeout(() => setToast(null), 6000);
+  };
+
   const onSave = async (car) => {
     try {
       const payload = {
         ...car,
         year: car.year ? Number(car.year) : undefined,
         price_inr: car.price_inr ? Number(car.price_inr) : undefined,
-        mileage_kmpl: car.mileage_kmpl === '' ? null : Number(car.mileage_kmpl),
-        range_km: car.range_km === '' ? null : Number(car.range_km),
+        mileage_kmpl: car.mileage_kmpl === '' || car.mileage_kmpl == null ? null : Number(car.mileage_kmpl),
+        range_km: car.range_km === '' || car.range_km == null ? null : Number(car.range_km),
         seats: Number(car.seats) || 5,
       };
       if (creating) {
-        await api.admin.create(password, payload);
+        const res = await api.admin.create(password, payload);
+        showToast('success', `Added ${res.car.brand} ${res.car.model}`, 'New car added to catalog.');
       } else {
-        await api.admin.update(password, editing.id, payload);
+        const res = await api.admin.update(password, editing.id, payload);
+        const changes = Object.keys(res.diff || {});
+        if (changes.length === 0) {
+          showToast('info', 'No changes', 'Nothing to update — all fields match.');
+        } else {
+          showToast('success', `${changes.length} field${changes.length > 1 ? 's' : ''} updated`, <DiffList diff={res.diff} />);
+        }
       }
       setEditing(null);
       setCreating(false);
       await loadCars();
     } catch (e) {
-      alert(`Save failed: ${e.message}`);
+      showToast('error', 'Save failed', e.message);
     }
   };
 
-  const onDelete = async (id) => {
-    if (!confirm(`Delete car ${id}? This can't be undone.`)) return;
+  const onDelete = async (car) => {
+    if (!confirm(`Delete ${car.brand} ${car.model}? This can't be undone.`)) return;
     try {
-      await api.admin.remove(password, id);
+      await api.admin.remove(password, car.id);
+      showToast('success', 'Car deleted', `${car.brand} ${car.model} removed.`);
       await loadCars();
     } catch (e) {
-      alert(`Delete failed: ${e.message}`);
+      showToast('error', 'Delete failed', e.message);
     }
   };
 
@@ -110,12 +125,15 @@ export default function KnowledgeBase() {
 
   if (editing || creating) {
     return (
-      <CarForm
-        car={editing || EMPTY_CAR}
-        creating={creating}
-        onSave={onSave}
-        onCancel={() => { setEditing(null); setCreating(false); }}
-      />
+      <>
+        <CarForm
+          car={editing || EMPTY_CAR}
+          creating={creating}
+          onSave={onSave}
+          onCancel={() => { setEditing(null); setCreating(false); }}
+        />
+        {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+      </>
     );
   }
 
@@ -166,15 +184,108 @@ export default function KnowledgeBase() {
                 <td>{c.available ? '✓' : '—'}</td>
                 <td>
                   <button onClick={() => setEditing(c)}>Edit</button>
-                  <button onClick={() => onDelete(c.id)} className="danger">Delete</button>
+                  <button onClick={() => setHistoryCar(c)}>History</button>
+                  <button onClick={() => onDelete(c)} className="danger">Delete</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {historyCar && (
+        <HistoryModal car={historyCar} password={password} onClose={() => setHistoryCar(null)} />
+      )}
+
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>
   );
+}
+
+function DiffList({ diff }) {
+  return (
+    <ul className="diff-list">
+      {Object.entries(diff).map(([field, { before, after }]) => (
+        <li key={field}>
+          <code>{field}</code>: <s>{fmt(before)}</s> → <strong>{fmt(after)}</strong>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function fmt(v) {
+  if (v == null) return '—';
+  if (Array.isArray(v)) return v.join(', ') || '—';
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  return String(v);
+}
+
+function Toast({ type, title, body, onClose }) {
+  return (
+    <div className={`toast toast-${type}`} role="alert">
+      <button className="toast-close" onClick={onClose} aria-label="Close">×</button>
+      <div className="toast-title">{title}</div>
+      <div className="toast-body">{body}</div>
+    </div>
+  );
+}
+
+function HistoryModal({ car, password, onClose }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    api.admin.history(password, car.id)
+      .then(({ entries }) => setEntries(entries))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [car.id, password]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>📜 History — {car.brand} {car.model}</h3>
+          <button onClick={onClose} className="modal-close">×</button>
+        </div>
+        <div className="modal-body">
+          {loading && <div className="loading">Loading…</div>}
+          {error && <div className="error">⚠️ {error}</div>}
+          {!loading && entries.length === 0 && (
+            <div className="empty">No changes recorded yet. Edits made after this feature was added will show here.</div>
+          )}
+          <ul className="history-list">
+            {entries.map((e) => (
+              <li key={e.id} className={`history-entry history-${e.action}`}>
+                <div className="history-header">
+                  <span className="history-action">{actionLabel(e.action)}</span>
+                  <span className="muted small">{new Date(e.created_at).toLocaleString()}</span>
+                </div>
+                {e.action === 'update' && Object.keys(e.diff || {}).length > 0 && (
+                  <DiffList diff={e.diff} />
+                )}
+                {e.action === 'create' && e.snapshot && (
+                  <div className="muted small">Added: {e.snapshot.brand} {e.snapshot.model} at {formatINR(e.snapshot.price_inr)}</div>
+                )}
+                {e.action === 'delete' && (
+                  <div className="muted small">Removed from catalog</div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function actionLabel(a) {
+  if (a === 'create') return '➕ Created';
+  if (a === 'update') return '✏️ Updated';
+  if (a === 'delete') return '🗑️ Deleted';
+  return a;
 }
 
 function CarForm({ car, creating, onSave, onCancel }) {
@@ -225,22 +336,22 @@ function CarForm({ car, creating, onSave, onCancel }) {
           <input type="number" min="2" max="9" value={form.seats} onChange={(e) => set('seats', e.target.value)} />
         </Field>
         <Field label="Mileage (kmpl)">
-          <input type="number" step="0.1" value={form.mileage_kmpl} onChange={(e) => set('mileage_kmpl', e.target.value)} />
+          <input type="number" step="0.1" value={form.mileage_kmpl ?? ''} onChange={(e) => set('mileage_kmpl', e.target.value)} />
         </Field>
         <Field label="Electric range (km)">
-          <input type="number" value={form.range_km} onChange={(e) => set('range_km', e.target.value)} />
+          <input type="number" value={form.range_km ?? ''} onChange={(e) => set('range_km', e.target.value)} />
         </Field>
         <Field label="Color">
-          <input value={form.color} onChange={(e) => set('color', e.target.value)} />
+          <input value={form.color || ''} onChange={(e) => set('color', e.target.value)} />
         </Field>
         <Field label="Location">
-          <input value={form.location} onChange={(e) => set('location', e.target.value)} />
+          <input value={form.location || ''} onChange={(e) => set('location', e.target.value)} />
         </Field>
         <Field label="Image URL" wide>
-          <input value={form.image_url} onChange={(e) => set('image_url', e.target.value)} placeholder="https://…" />
+          <input value={form.image_url || ''} onChange={(e) => set('image_url', e.target.value)} placeholder="https://…" />
         </Field>
         <Field label="Description" wide>
-          <textarea rows="2" value={form.description} onChange={(e) => set('description', e.target.value)} />
+          <textarea rows="2" value={form.description || ''} onChange={(e) => set('description', e.target.value)} />
         </Field>
         <Field label="Features (comma-separated)" wide>
           <input value={form.features} onChange={(e) => set('features', e.target.value)} placeholder="Sunroof, ADAS, 6 Airbags" />

@@ -2,8 +2,8 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -42,6 +42,8 @@ export const api = {
       method: 'DELETE',
       headers: { 'x-admin-password': password },
     }),
+    history: (password, id) => request(`/api/cars/${id}/history`, { headers: { 'x-admin-password': password } }),
+    recent: (password) => request('/api/cars/admin/recent', { headers: { 'x-admin-password': password } }),
   },
 };
 
