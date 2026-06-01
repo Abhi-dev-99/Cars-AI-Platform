@@ -4,7 +4,7 @@ import { api, formatINR } from '../api/client.js';
 const STORAGE_KEY = 'kb-admin-password';
 
 const FUEL_TYPES = ['Petrol', 'Diesel', 'Electric', 'Hybrid'];
-const BODY_TYPES = ['Hatchback', 'SUV', 'Micro SUV', 'MPV', 'Crossover', 'Sedan'];
+const BODY_TYPES = ['Hatchback', 'SUV', 'Micro SUV', 'MPV', 'Crossover', 'Sedan', 'Coupe', 'Pickup Truck'];
 const TRANSMISSIONS = ['Manual', 'Automatic'];
 
 const EMPTY_CAR = {
